@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus</title>
+    <link rel="stylesheet" href="block.css">
+</head>
+<body>
+    <div class="overlay" id="blur-overlay"></div>
+    <div class="timer-bar">
+        <div class="timer-content">
+            <div class="timer-info">
+                <span class="timer-text" id="timer-display">05:00</span>
+                <span id="typing-indicator" class="typing-indicator hidden">Timer Paused (Typing)</span>
+            </div>
+            <div class="timer-message" id="timer-message">Read about AI to unlock Instagram.</div>
+            <button id="unlock-btn" class="unlock-btn hidden">Back to Instagram</button>
+        </div>
+        <div class="progress-container">
+            <div id="read-progress" class="progress-fill"></div>
+        </div>
+    </div>
+
+    <div class="split-layout">
+        <main class="article-container">
+            <header class="article-header" id="dynamic-header">
+                <!-- Injected via JS -->
+            </header>
+
+            <div class="article-content" id="dynamic-content">
+                <!-- Injected via JS -->
+            </div>
+            
+            <div class="article-actions" style="margin-top: 40px; text-align: center; border-top: 1px solid var(--border-color); padding-top: 30px;">
+                <p style="color: var(--text-secondary); font-size: 15px; margin-bottom: 20px;">
+                    Keep this window open to complete the timer.
+                </p>
+                <div style="display: flex; justify-content: center; gap: 12px;">
+                    <button id="prev-article-btn" class="unlock-btn" style="padding: 10px 20px; font-size: 15px; border-radius: 20px; background-color: #86868b;">Previous Article</button>
+                    <button id="next-article-btn" class="unlock-btn" style="padding: 10px 20px; font-size: 15px; border-radius: 20px;">Next Article</button>
+                </div>
+            </div>
+        </main>
+
+        <aside class="notes-container">
+            <div class="notes-header">
+                <h2>Daily Notes</h2>
+                <span id="notes-date" class="notes-date">Today</span>
+            </div>
+            <textarea id="notes-area" class="notes-textarea" placeholder="Jot down your thoughts here..."></textarea>
+            <div class="notes-footer">
+                <span id="save-status">Saved locally</span>
+            </div>
+        </aside>
+    </div>
+
+    <script src="block.js"></script>
+</body>
+</html>

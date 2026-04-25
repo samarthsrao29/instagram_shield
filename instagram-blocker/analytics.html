@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus Shield - Analytics</title>
+    <link rel="stylesheet" href="analytics.css">
+</head>
+<body>
+    <div class="analytics-container">
+        <header class="header">
+            <div class="header-left">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <h1>Shield Analytics</h1>
+            </div>
+            <div class="controls">
+                <button id="btn-week" class="toggle-btn active">1 Week</button>
+                <button id="btn-month" class="toggle-btn">1 Month</button>
+            </div>
+        </header>
+
+        <main class="content">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h2>Instagram Usage Over Time</h2>
+                    <span id="total-time-label" class="total-label">Total: 0h 0m</span>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="usageChart" width="800" height="300"></canvas>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <h3>Average Daily Usage</h3>
+                    <div id="avg-daily" class="stat-value">0m</div>
+                </div>
+                <div class="stat-box">
+                    <h3>Total Reading Time</h3>
+                    <div id="total-reading" class="stat-value">0m</div>
+                </div>
+                <div class="stat-box">
+                    <h3>Total Blocks</h3>
+                    <div id="total-blocks" class="stat-value">0</div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="analytics.js"></script>
+</body>
+</html>

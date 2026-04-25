@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Focus Shield",
+  "version": "1.0",
+  "description": "Block Instagram after 3 minutes, unblock by reading about AI for 5 minutes.",
+  "permissions": [
+    "storage",
+    "tabs",
+    "alarms",
+    "webNavigation"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Focus Analytics"
+  },
+  "host_permissions": [
+    "*://*.instagram.com/*"
+  ]
+}
