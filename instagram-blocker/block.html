@@ -3,27 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Focus</title>
+    <title>Focus Shield</title>
     <link rel="stylesheet" href="block.css">
+    <style>
+        .mode-tabs {
+            display: flex;
+            gap: 10px;
+            background: rgba(0,0,0,0.05);
+            padding: 4px;
+            border-radius: 12px;
+            margin-right: 20px;
+        }
+        .mode-tab {
+            background: transparent;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        .mode-tab.active {
+            background: white;
+            color: var(--text-primary);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .hidden-view {
+            display: none !important;
+        }
+        .topic-selector select {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: #fff;
+            font-size: 14px;
+            outline: none;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
     <div class="overlay" id="blur-overlay"></div>
     <div class="timer-bar">
         <div class="timer-content">
-            <div class="timer-info">
+            <div class="mode-tabs">
+                <button id="tab-read" class="mode-tab active">Reading Mode</button>
+                <button id="tab-quiz" class="mode-tab">Quiz Mode</button>
+            </div>
+            
+            <div class="timer-info" id="timer-info-container">
                 <span class="timer-text" id="timer-display">05:00</span>
                 <span id="typing-indicator" class="typing-indicator hidden">Timer Paused (Typing)</span>
             </div>
-            <div class="timer-message" id="timer-message">Read about AI to unlock Instagram.</div>
+            
+            <div class="timer-message" id="timer-message">Complete your task to unlock Instagram.</div>
             <button id="unlock-btn" class="unlock-btn hidden">Back to Instagram</button>
         </div>
-        <div class="progress-container">
+        <div class="progress-container" id="progress-container">
             <div id="read-progress" class="progress-fill"></div>
         </div>
     </div>
 
-    <div class="split-layout">
+    <!-- READING MODE VIEW -->
+    <div id="read-mode-view" class="split-layout">
         <main class="article-container">
+            <div class="topic-selector" style="margin-bottom: 30px; display: flex; align-items: center; gap: 10px; background: rgba(0, 113, 227, 0.05); padding: 15px 20px; border-radius: 12px;">
+                <label for="topic-select" style="font-weight: 600; color: var(--accent);">Choose Topic:</label>
+                <select id="topic-select">
+                    <option value="Artificial Intelligence">Artificial Intelligence</option>
+                    <option value="World History">World History</option>
+                    <option value="Space Exploration">Space Exploration</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Geography">Geography</option>
+                    <option value="Economics">Economics</option>
+                </select>
+            </div>
+
             <header class="article-header" id="dynamic-header">
                 <!-- Injected via JS -->
             </header>
@@ -34,10 +91,10 @@
             
             <div class="article-actions" style="margin-top: 40px; text-align: center; border-top: 1px solid var(--border-color); padding-top: 30px;">
                 <p style="color: var(--text-secondary); font-size: 15px; margin-bottom: 20px;">
-                    Keep this window open to complete the timer.
+                    Keep this window open to complete the 5-minute reading timer.
                 </p>
                 <div style="display: flex; justify-content: center; gap: 12px;">
-                    <button id="prev-article-btn" class="unlock-btn" style="padding: 10px 20px; font-size: 15px; border-radius: 20px; background-color: #86868b;">Previous Article</button>
+                    <button id="prev-article-btn" class="unlock-btn" style="padding: 10px 20px; font-size: 15px; border-radius: 20px; background-color: #86868b;" disabled>Previous Article</button>
                     <button id="next-article-btn" class="unlock-btn" style="padding: 10px 20px; font-size: 15px; border-radius: 20px;">Next Article</button>
                 </div>
             </div>
@@ -48,13 +105,29 @@
                 <h2>Daily Notes</h2>
                 <span id="notes-date" class="notes-date">Today</span>
             </div>
-            <textarea id="notes-area" class="notes-textarea" placeholder="Jot down your thoughts here..."></textarea>
+            <textarea id="notes-area" class="notes-textarea" placeholder="Jot down your thoughts here to pause the timer..."></textarea>
             <div class="notes-footer">
                 <span id="save-status">Saved locally</span>
             </div>
         </aside>
     </div>
 
+    <!-- QUIZ MODE VIEW -->
+    <div id="quiz-mode-view" class="hidden-view" style="max-width: 800px; margin: 40px auto; padding: 40px; background: white; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); height: calc(100vh - 120px); overflow-y: auto;">
+        <div class="quiz-header" style="text-align: center; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid var(--border-color);">
+            <h2 style="font-size: 28px; margin-bottom: 10px;">General Knowledge Challenge</h2>
+            <p style="color: var(--text-secondary); font-size: 16px;">Answer 5 questions correctly to instantly unlock Instagram.</p>
+            <div style="font-size: 24px; font-weight: bold; color: var(--accent); margin-top: 20px; background: rgba(0, 113, 227, 0.05); display: inline-block; padding: 10px 24px; border-radius: 20px;">
+                Progress: <span id="quiz-progress-text">0 / 5</span>
+            </div>
+        </div>
+        <div id="quiz-container-main" style="max-width: 600px; margin: 0 auto;">
+            <!-- Quiz content -->
+            <p style="text-align: center; font-size: 18px; color: var(--text-secondary);">Loading questions...</p>
+        </div>
+    </div>
+
+    <script src="quiz_data.js"></script>
     <script src="block.js"></script>
 </body>
 </html>

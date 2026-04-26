@@ -44,24 +44,41 @@ function seedMockDataIfNeeded(history) {
     return history;
 }
 
-function drawChart(dates, dataValues) {
+let lastDates = [];
+let lastValues = [];
+let hoverIndex = -1;
+
+function drawChart(dates, dataValues, activeIndex = -1) {
+    lastDates = dates;
+    lastValues = dataValues;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    const maxVal = Math.max(...dataValues, 1);
+    const maxVal = Math.max(...dataValues, 5); // Ensure at least some height
     const padding = 40;
     const chartWidth = canvas.width - padding * 2;
     const chartHeight = canvas.height - padding * 2;
     
-    const barWidth = (chartWidth / dates.length) * 0.6;
+    const barWidth = (chartWidth / dates.length) * 0.7;
     const spacing = (chartWidth / dates.length);
     
     // Draw axes
     ctx.strokeStyle = '#e5e5ea';
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(padding, padding);
     ctx.lineTo(padding, padding + chartHeight);
     ctx.lineTo(padding + chartWidth, padding + chartHeight);
     ctx.stroke();
+
+    // Draw grid lines (horizontal)
+    ctx.strokeStyle = '#f2f2f7';
+    for (let i = 0; i <= 4; i++) {
+        const y = padding + (chartHeight / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(padding + chartWidth, y);
+        ctx.stroke();
+    }
     
     // Draw bars
     for (let i = 0; i < dates.length; i++) {
@@ -70,22 +87,68 @@ function drawChart(dates, dataValues) {
         const x = padding + (i * spacing) + (spacing - barWidth) / 2;
         const y = padding + chartHeight - barHeight;
         
-        ctx.fillStyle = '#0071e3';
+        const isHovered = i === activeIndex;
+        
+        // Bar color
+        ctx.fillStyle = isHovered ? '#005bb7' : '#0071e3';
+        
         ctx.beginPath();
-        ctx.roundRect(x, y, barWidth, barHeight, [4, 4, 0, 0]);
+        ctx.roundRect(x, y, barWidth, barHeight, [6, 6, 0, 0]);
         ctx.fill();
         
+        // Draw value on top
+        if (val > 0 || isHovered) {
+            // Only show all values if week view, otherwise only show on hover
+            if (dates.length <= 7 || isHovered) {
+                ctx.fillStyle = isHovered ? '#000000' : '#86868b';
+                ctx.font = isHovered ? 'bold 13px sans-serif' : '11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${val}m`, x + barWidth/2, y - 10);
+            }
+        }
+        
         // Draw labels
-        if (dates.length <= 7 || i % 5 === 0) {
-            ctx.fillStyle = '#86868b';
-            ctx.font = '12px sans-serif';
+        if (dates.length <= 7 || i % 5 === 0 || isHovered) {
+            ctx.fillStyle = isHovered ? '#1d1d1f' : '#86868b';
+            ctx.font = isHovered ? 'bold 12px sans-serif' : '11px sans-serif';
             ctx.textAlign = 'center';
             const dateObj = new Date(dates[i]);
             const label = `${dateObj.getMonth()+1}/${dateObj.getDate()}`;
-            ctx.fillText(label, x + barWidth/2, padding + chartHeight + 20);
+            ctx.fillText(label, x + barWidth/2, padding + chartHeight + 22);
         }
     }
 }
+
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    
+    const padding = 40;
+    const chartWidth = canvas.width - padding * 2;
+    const spacing = (chartWidth / lastDates.length);
+    
+    const index = Math.floor((x - padding) / spacing);
+    
+    if (index >= 0 && index < lastDates.length) {
+        if (index !== hoverIndex) {
+            hoverIndex = index;
+            drawChart(lastDates, lastValues, hoverIndex);
+        }
+    } else {
+        if (hoverIndex !== -1) {
+            hoverIndex = -1;
+            drawChart(lastDates, lastValues, -1);
+        }
+    }
+});
+
+canvas.addEventListener('mouseleave', () => {
+    hoverIndex = -1;
+    drawChart(lastDates, lastValues, -1);
+});
 
 function updateAnalytics() {
     const days = currentMode === 'week' ? 7 : 30;

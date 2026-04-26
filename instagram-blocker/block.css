@@ -269,3 +269,23 @@ body.paused .overlay {
     opacity: 1;
     visibility: visible;
 }
+
+
+.quiz-btn {
+    background-color: var(--glass-bg);
+    border: 1px solid var(--border-color);
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 15px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-primary);
+}
+.quiz-btn:hover {
+    background-color: rgba(0, 113, 227, 0.1);
+    border-color: var(--accent);
+}
+.quiz-btn:disabled {
+    cursor: default;
+}
