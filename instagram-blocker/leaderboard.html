@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Focus Shield Leaderboard</title>
+    <link rel="stylesheet" href="leaderboard.css" />
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">
+                <h1>Leaderboard</h1>
+                <p class="subtitle">Compare focus stats with other users (daily and weekly).</p>
+            </div>
+            <div class="actions">
+                <button id="btn-refresh" class="btn">Refresh</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="row">
+                <div class="label">Display name</div>
+                <div class="grow">
+                    <input id="display-name" class="input" placeholder="e.g., Samarth" maxlength="30" />
+                </div>
+                <button id="btn-save-name" class="btn primary">Save</button>
+            </div>
+            <div id="status" class="status"></div>
+        </div>
+
+        <div class="card">
+            <div class="segmented">
+                <button id="tab-daily" class="seg active">Daily</button>
+                <button id="tab-weekly" class="seg">Weekly</button>
+            </div>
+            <div id="list" class="list"></div>
+        </div>
+    </div>
+
+    <script src="config.local.js"></script>
+    <script src="supabase_client.js"></script>
+    <script src="leaderboard.js"></script>
+</body>
+</html>
+

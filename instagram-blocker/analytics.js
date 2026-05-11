@@ -17,10 +17,16 @@ function formatMsToHoursAndMins(ms) {
 
 function getPastDates(daysCount) {
     const dates = [];
+    const toLocalKey = (d) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
     for (let i = daysCount - 1; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        dates.push(d.toISOString().split('T')[0]);
+        dates.push(toLocalKey(d));
     }
     return dates;
 }
@@ -30,10 +36,16 @@ function seedMockDataIfNeeded(history) {
     
     // Auto-seed mock data if empty or only has today, so the graph isn't entirely empty on first launch
     if (keys.length <= 1) {
+        const toLocalKey = (d) => {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
         for (let i = 1; i < 30; i++) {
             const d = new Date();
             d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = toLocalKey(d);
             history[dateStr] = {
                 instaTimeMs: Math.random() * 4 * 60 * 1000, // random up to 4 mins
                 readTimeMs: Math.random() * 15 * 60 * 1000, 
@@ -112,8 +124,8 @@ function drawChart(dates, dataValues, activeIndex = -1) {
             ctx.fillStyle = isHovered ? '#1d1d1f' : '#86868b';
             ctx.font = isHovered ? 'bold 12px sans-serif' : '11px sans-serif';
             ctx.textAlign = 'center';
-            const dateObj = new Date(dates[i]);
-            const label = `${dateObj.getMonth()+1}/${dateObj.getDate()}`;
+            const parts = (dates[i] || '').split('-');
+            const label = parts.length === 3 ? `${Number(parts[1])}/${Number(parts[2])}` : '';
             ctx.fillText(label, x + barWidth/2, padding + chartHeight + 22);
         }
     }

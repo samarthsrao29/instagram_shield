@@ -1,9 +1,68 @@
 const LIMIT_MS = 2 * 60 * 1000;
 // const LIMIT_MS = 5 * 1000; // For testing purposes! 
 
+try { importScripts("config.local.js"); } catch {}
+try { importScripts("supabase_client.js"); } catch {}
+
+function getLocalDateKey(d = new Date()) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+async function getIsEnabled() {
+  const data = await chrome.storage.local.get('isEnabled');
+  return data.isEnabled !== false;
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "toggleChanged") {
+    handleTabChange();
+  } else if (request.action === "forceSupabaseSync") {
+    syncStatsToSupabase()
+      .then(() => sendResponse({ ok: true }))
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+});
+
+async function syncStatsToSupabase() {
+  try {
+    if (!globalThis.FocusShieldSupabase?.getSupabaseConfig) return;
+    const { enabled } = globalThis.FocusShieldSupabase.getSupabaseConfig();
+    if (!enabled) return;
+
+    const result = await chrome.storage.local.get(["stats", "displayName"]);
+    const stats = result.stats;
+    if (!stats || !stats.date) return;
+
+    const displayName = (result.displayName || "").trim() || "Anonymous";
+    const profileRes = await globalThis.FocusShieldSupabase.upsertProfile({ displayName });
+    const statsRes = await globalThis.FocusShieldSupabase.upsertDailyStats({
+      date: stats.date,
+      instaTimeMs: stats.instaTimeMs,
+      readTimeMs: stats.readTimeMs,
+      blocksCount: stats.blocksCount
+    });
+    const ok = (profileRes?.ok !== false) && (statsRes?.ok !== false);
+    await chrome.storage.local.set({
+      sbLastSyncAt: new Date().toISOString(),
+      sbLastSyncOk: ok,
+      sbLastSyncError: ok ? "" : (profileRes?.error || statsRes?.error || "Unknown sync error")
+    });
+  } catch (e) {
+    await chrome.storage.local.set({
+      sbLastSyncAt: new Date().toISOString(),
+      sbLastSyncOk: false,
+      sbLastSyncError: e?.message || "Sync threw an error"
+    });
+  }
+}
+
 async function getStats() {
   const result = await chrome.storage.local.get(['stats']);
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateKey();
   let stats = result.stats;
   if (!stats || stats.date !== today) {
     stats = {
@@ -37,6 +96,7 @@ async function saveStats(stats) {
   };
   
   await chrome.storage.local.set({ stats, history });
+  await syncStatsToSupabase();
 }
 
 async function flushTime() {
@@ -52,6 +112,16 @@ async function flushTime() {
 
 async function checkBlock() {
   let stats = await flushTime();
+
+  const isEnabled = await getIsEnabled();
+  if (!isEnabled) {
+    if (stats.lastInstaFocusTime) {
+      stats.lastInstaFocusTime = null;
+      await saveStats(stats);
+    }
+    chrome.alarms.clear("blockInsta");
+    return;
+  }
 
   if (stats.instaTimeMs >= stats.allowanceMs) {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -70,28 +140,57 @@ async function checkBlock() {
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "blockInsta") {
     checkBlock();
+  } else if (alarm.name === "sbSync") {
+    syncStatsToSupabase();
   }
 });
 
-async function handleTabChange() {
-  const tabs = await chrome.tabs.query({ active: true });
+function isInstagramUrl(url) {
+  return typeof url === "string" && url.includes("instagram.com");
+}
+
+async function getFocusedActiveTab(isWindowFocused) {
+  // If Chrome itself is not focused, treat as "not on Instagram" so time pauses.
+  if (isWindowFocused === false) return null;
+
+  const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  return tabs && tabs.length > 0 ? tabs[0] : null;
+}
+
+async function handleTabChange(event) {
+  // `event` may come from different listeners:
+  // - tabs.onActivated: { tabId, windowId }
+  // - windows.onFocusChanged: windowId (number)
+  // - tabs.onUpdated: (tabId, changeInfo, tab) -> we pass nothing
+  const isWindowFocused =
+    typeof event === "number"
+      ? event !== chrome.windows.WINDOW_ID_NONE
+      : event && typeof event.windowId === "number"
+        ? event.windowId !== chrome.windows.WINDOW_ID_NONE
+        : true;
+
+  const activeTab = await getFocusedActiveTab(isWindowFocused);
   let stats = await flushTime();
   
-  if (tabs.length === 0) return;
-  
-  // Find if instagram is active anywhere
-  let isOnInstagram = false;
-  for (const tab of tabs) {
-    if (tab.url && tab.url.includes("instagram.com")) {
-      isOnInstagram = true;
-      if (stats.instaTimeMs >= stats.allowanceMs) {
-        stats.blocksCount++;
-        stats.lastInstaFocusTime = null;
-        await saveStats(stats);
-        chrome.tabs.update(tab.id, { url: chrome.runtime.getURL("block.html") });
-      }
-      break;
+  const isEnabled = await getIsEnabled();
+  if (!isEnabled) {
+    if (stats.lastInstaFocusTime) {
+      stats.lastInstaFocusTime = null;
+      await saveStats(stats);
+      chrome.alarms.clear("blockInsta");
     }
+    return;
+  }
+
+  // If there's no focused active tab, we are effectively "off Instagram".
+  const isOnInstagram = !!(activeTab && isInstagramUrl(activeTab.url));
+
+  if (isOnInstagram && stats.instaTimeMs >= stats.allowanceMs) {
+    stats.blocksCount++;
+    stats.lastInstaFocusTime = null;
+    await saveStats(stats);
+    chrome.tabs.update(activeTab.id, { url: chrome.runtime.getURL("block.html") });
+    return;
   }
 
   if (isOnInstagram && stats.instaTimeMs < stats.allowanceMs) {
@@ -108,11 +207,15 @@ async function handleTabChange() {
 }
 
 chrome.tabs.onActivated.addListener(handleTabChange);
-chrome.tabs.onUpdated.addListener(handleTabChange);
+chrome.tabs.onUpdated.addListener(() => handleTabChange());
+chrome.tabs.onRemoved.addListener(() => handleTabChange());
 chrome.windows.onFocusChanged.addListener(handleTabChange);
 
 chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   if (details.frameId === 0 && details.url.includes("instagram.com")) {
+    const isEnabled = await getIsEnabled();
+    if (!isEnabled) return;
+
     let stats = await getStats();
     if (stats.instaTimeMs >= stats.allowanceMs) {
       // Direct redirect
@@ -121,4 +224,14 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
       chrome.tabs.update(details.tabId, { url: chrome.runtime.getURL("block.html") });
     }
   }
+});
+
+chrome.runtime.onStartup?.addListener(() => {
+  chrome.alarms.create("sbSync", { periodInMinutes: 10 });
+  syncStatsToSupabase();
+});
+
+chrome.runtime.onInstalled?.addListener(() => {
+  chrome.alarms.create("sbSync", { periodInMinutes: 10 });
+  syncStatsToSupabase();
 });

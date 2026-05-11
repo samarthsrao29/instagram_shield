@@ -13,6 +13,12 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                 <h1>Focus System</h1>
             </div>
+            <div class="toggle-container" title="Toggle Blocker On/Off">
+                <label class="switch">
+                    <input type="checkbox" id="blocker-toggle" checked>
+                    <span class="slider round"></span>
+                </label>
+            </div>
         </header>
 
         <div class="stats-grid">
@@ -31,7 +37,7 @@
                     <div class="stat-icon">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                     </div>
-                    <span class="stat-label">Blocks Enabled</span>
+                    <span class="stat-label">Blocks</span>
                 </div>
                 <div id="blocks-count" class="stat-value">0</div>
             </div>
@@ -41,7 +47,7 @@
                     <div class="stat-icon">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
                     </div>
-                    <span class="stat-label">Time Reading</span>
+                    <span class="stat-label">Reading</span>
                 </div>
                 <div id="read-time" class="stat-value">0m</div>
             </div>
@@ -57,22 +63,13 @@
             </div>
         </div>
 
-        <div class="pref-section">
-            <div class="pref-row">
-                <span>Reading Topic:</span>
-                <select id="topic-select" class="topic-select">
-                    <option value="Any">Mixed Topics</option>
-                    <option value="Artificial Intelligence">Artificial Intelligence</option>
-                    <option value="Machine Learning">Machine Learning</option>
-                    <option value="Deep Learning">Deep Learning</option>
-                    <option value="Trending News">Trending News</option>
-                </select>
-            </div>
-        </div>
-        
         <div style="display: flex; gap: 10px; margin-top: 4px;">
-            <button id="open-reading" class="btn-primary" style="flex: 1;">Open Reader</button>
-            <button id="open-analytics" class="btn-primary" style="flex: 1; background-color: #86868b;">Analytics</button>
+            <button id="open-read-mode" class="btn-primary" style="flex: 1;">Read Mode</button>
+            <button id="open-quiz-mode" class="btn-primary" style="flex: 1; background-color: #86868b;">Quiz Mode</button>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 6px;">
+            <button id="open-analytics" class="btn-primary" style="flex: 1; background-color: #3a3a3c;">Analytics</button>
+            <button id="open-leaderboard" class="btn-primary" style="flex: 1; background-color: #1d1d1f;">Leaderboard</button>
         </div>
     </div>
     <script src="popup.js"></script>

@@ -33,6 +33,15 @@ tabQuiz.addEventListener('click', () => {
     document.getElementById('timer-message').textContent = "Answer 5 questions correctly to unlock.";
 });
 
+function applyInitialModeFromUrl() {
+    const params = new URLSearchParams(window.location.search || '');
+    const mode = (params.get('mode') || '').toLowerCase();
+    if (mode === 'quiz') {
+        tabQuiz.click();
+    } else if (mode === 'read') {
+        tabRead.click();
+    }
+}
 
 // ====== READING MODE LOGIC ======
 const topicSelect = document.getElementById('topic-select');
@@ -40,10 +49,91 @@ let currentTopic = topicSelect.value;
 let articleHistory = [];
 let currentArticleIndex = -1;
 
+const groqKeyStatus = document.getElementById('groq-key-status');
+
+async function getGroqApiKey() {
+    if (typeof globalThis.GROQ_API_KEY === 'string' && globalThis.GROQ_API_KEY.trim()) {
+        return globalThis.GROQ_API_KEY.trim();
+    }
+    const result = await chrome.storage.local.get(['groqApiKey']);
+    return result.groqApiKey || '';
+}
+
+async function setGroqApiKey(key) {
+    await chrome.storage.local.set({ groqApiKey: key });
+}
+
+function sanitizeHtml(html) {
+    if (typeof html !== 'string') return '';
+    // Remove scripts/styles entirely
+    html = html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
+    html = html.replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '');
+    // Remove inline event handlers (on*)
+    html = html.replace(/\son[a-z]+\s*=\s*(".*?"|'.*?'|[^\s>]+)/gi, '');
+    // Strip links to enforce "no links"
+    html = html.replace(/<a\b[^>]*>/gi, '<span>');
+    html = html.replace(/<\/a>/gi, '</span>');
+    return html;
+}
+
+async function generateArticleWithGroq(topic) {
+    const apiKey = (await getGroqApiKey()).trim();
+    if (!apiKey) return null;
+
+    const prompt = `
+You are writing a short learning note for a browser extension.
+Topic: ${topic}
+
+Requirements:
+- Output must be VALID HTML ONLY (no markdown, no code fences).
+- Allowed tags: h3, h4, p, ul, ol, li, strong, em, code.
+- No links, no images, no external references, no citations, no <a>.
+- No scripts, no styles.
+- Length: 600 to 900 words.
+- Make it accurate and practical: include examples, key terms, and common pitfalls.
+
+Return ONLY the HTML body (no <html>, no <body>).
+`.trim();
+
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            temperature: 0.9,
+            max_tokens: 1400,
+            messages: [
+                { role: 'system', content: 'You are a precise technical writer.' },
+                { role: 'user', content: prompt }
+            ]
+        })
+    });
+
+    if (!res.ok) {
+        throw new Error(`Groq request failed: ${res.status}`);
+    }
+
+    const data = await res.json();
+    const content = data?.choices?.[0]?.message?.content;
+    if (!content) throw new Error('Groq returned empty content');
+    return sanitizeHtml(content);
+}
+
+async function initGroqKeyUi() {
+    const existing = (await getGroqApiKey()).trim();
+    groqKeyStatus.textContent = existing
+        ? 'Groq enabled: new content will be generated each time you press Next.'
+        : 'Groq disabled: using offline library content. To enable, add `config.local.js` (see `config.example.js`).';
+}
+
 topicSelect.addEventListener('change', (e) => {
     currentTopic = e.target.value;
     articleHistory = [];
     currentArticleIndex = -1;
+    document.getElementById('next-article-btn').disabled = false;
     fetchAndRenderNewArticle();
 });
 
@@ -64,43 +154,64 @@ document.getElementById('prev-article-btn').addEventListener('click', () => {
 });
 
 async function fetchAndRenderNewArticle() {
-    document.getElementById('dynamic-header').innerHTML = `
-        <div class="tag">Fetching...</div>
-        <h1>Loading Article on ${currentTopic}</h1>
-        <p class="subtitle">Please wait</p>
-    `;
-    document.getElementById('dynamic-content').innerHTML = '';
-    
-    try {
-        const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(currentTopic)}&utf8=&format=json&origin=*`);
-        const searchData = await searchRes.json();
-        
-        if (!searchData.query.search || searchData.query.search.length === 0) {
-            throw new Error("No articles found");
+    const normalizedTopic = currentTopic === 'ML' ? 'Machine Learning' : currentTopic;
+
+    // Prefer Groq generation if key is present
+    const tryGroqTopic = normalizedTopic === 'Machine Learning' ? 'Machine Learning (ML)' : normalizedTopic;
+    const hasKey = (await getGroqApiKey()).trim().length > 0;
+
+    if (hasKey) {
+        document.getElementById('dynamic-header').innerHTML = `
+            <div class="tag">${normalizedTopic.toUpperCase()}</div>
+            <h1>Generating fresh content…</h1>
+            <p class="subtitle">Please wait</p>
+        `;
+        document.getElementById('dynamic-content').innerHTML = `<p style="color: var(--text-secondary);">Creating a new explanation with examples (no links).</p>`;
+
+        try {
+            const html = await generateArticleWithGroq(tryGroqTopic);
+            const now = new Date();
+            const title = `${normalizedTopic} • ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            const articleObj = {
+                topic: normalizedTopic,
+                title,
+                description: 'Generated fresh content (offline links disabled).',
+                html,
+                url: null
+            };
+            articleHistory.push(articleObj);
+            currentArticleIndex = articleHistory.length - 1;
+            renderArticle(articleObj);
+            document.getElementById('next-article-btn').disabled = false;
+            return;
+        } catch (e) {
+            groqKeyStatus.textContent = 'Groq error. Falling back to offline library content.';
         }
-        
-        const randomIndex = Math.floor(Math.random() * Math.min(10, searchData.query.search.length));
-        const title = searchData.query.search[randomIndex].title;
-        
-        const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
-        const data = await response.json();
-        
-        const articleObj = {
-            topic: currentTopic,
-            title: data.title,
-            description: data.description || 'Information',
-            html: data.extract_html,
-            url: data.content_urls?.desktop?.page || '#'
-        };
-        
-        articleHistory.push(articleObj);
-        currentArticleIndex = articleHistory.length - 1;
-        renderArticle(articleObj);
-        
-    } catch (e) {
-        document.getElementById('dynamic-header').innerHTML = '<h1>Error loading article</h1>';
-        document.getElementById('dynamic-content').innerHTML = '<p>Could not fetch from Wikipedia. Please check your connection or try another topic.</p>';
     }
+
+    // Fallback: offline library content
+    if (learningLibrary[normalizedTopic]) {
+        const libraryArticles = learningLibrary[normalizedTopic];
+        const readCount = articleHistory.filter(a => a.topic === normalizedTopic).length;
+        if (libraryArticles.length > 0) {
+            const article = libraryArticles[readCount % libraryArticles.length];
+            const articleObj = {
+                topic: normalizedTopic,
+                title: article.title,
+                description: article.description,
+                html: article.html,
+                url: null
+            };
+            articleHistory.push(articleObj);
+            currentArticleIndex = articleHistory.length - 1;
+            renderArticle(articleObj);
+            document.getElementById('next-article-btn').disabled = false;
+            return;
+        }
+    }
+
+    document.getElementById('dynamic-header').innerHTML = '<h1>Content not available</h1>';
+    document.getElementById('dynamic-content').innerHTML = `<p>Please add a Groq API key or use a supported topic.</p>`;
 }
 
 function renderArticle(articleObj) {
@@ -110,12 +221,7 @@ function renderArticle(articleObj) {
         <p class="subtitle">${articleObj.description}</p>
     `;
     document.getElementById('dynamic-content').innerHTML = `
-        <p>${articleObj.html}</p>
-        <div style="margin-top: 20px;">
-            <a href="${articleObj.url}" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 500;">
-                Read more on Wikipedia →
-            </a>
-        </div>
+        <div>${articleObj.html}</div>
     `;
     document.querySelector('.article-container').scrollTop = 0;
     
@@ -367,3 +473,5 @@ fetchAndRenderNewArticle();
 loadQuiz();
 updateDisplay();
 timerId = setInterval(tick, 1000);
+initGroqKeyUi();
+applyInitialModeFromUrl();

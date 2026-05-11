@@ -72,14 +72,15 @@
             <div class="topic-selector" style="margin-bottom: 30px; display: flex; align-items: center; gap: 10px; background: rgba(0, 113, 227, 0.05); padding: 15px 20px; border-radius: 12px;">
                 <label for="topic-select" style="font-weight: 600; color: var(--accent);">Choose Topic:</label>
                 <select id="topic-select">
-                    <option value="Artificial Intelligence">Artificial Intelligence</option>
-                    <option value="World History">World History</option>
-                    <option value="Space Exploration">Space Exploration</option>
-                    <option value="Technology">Technology</option>
-                    <option value="Geography">Geography</option>
-                    <option value="Economics">Economics</option>
+                    <option value="AI">AI</option>
+                    <option value="ML">ML</option>
+                    <option value="Deep Learning">Deep Learning</option>
+                    <option value="Vector DB">Vector DB</option>
+                    <option value="RAG">RAG</option>
                 </select>
             </div>
+
+            <div id="groq-key-status" style="margin-bottom: 25px; color: var(--text-secondary); font-size: 13px;"></div>
 
             <header class="article-header" id="dynamic-header">
                 <!-- Injected via JS -->
@@ -127,6 +128,9 @@
         </div>
     </div>
 
+    <script src="learning_library.js"></script>
+    <!-- Optional local config (do not commit real keys). See `config.example.js`. -->
+    <script src="config.local.js"></script>
     <script src="quiz_data.js"></script>
     <script src="block.js"></script>
 </body>
