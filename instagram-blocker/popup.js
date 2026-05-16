@@ -55,6 +55,14 @@ document.getElementById('open-leaderboard').addEventListener('click', () => {
     chrome.tabs.create({ url: chrome.runtime.getURL("leaderboard.html") });
 });
 
+document.getElementById('open-settings').addEventListener('click', () => {
+    if (chrome.runtime.openOptionsPage) {
+        chrome.runtime.openOptionsPage();
+    } else {
+        chrome.tabs.create({ url: chrome.runtime.getURL("options.html") });
+    }
+});
+
 updateUI();
 setInterval(updateUI, 1000);
 

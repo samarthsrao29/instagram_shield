@@ -1,6 +1,7 @@
 const LIMIT_MS = 2 * 60 * 1000;
 // const LIMIT_MS = 5 * 1000; // For testing purposes! 
 
+try { importScripts("config.js"); } catch {}
 try { importScripts("config.local.js"); } catch {}
 try { importScripts("supabase_client.js"); } catch {}
 

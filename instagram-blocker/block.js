@@ -52,9 +52,6 @@ let currentArticleIndex = -1;
 const groqKeyStatus = document.getElementById('groq-key-status');
 
 async function getGroqApiKey() {
-    if (typeof globalThis.GROQ_API_KEY === 'string' && globalThis.GROQ_API_KEY.trim()) {
-        return globalThis.GROQ_API_KEY.trim();
-    }
     const result = await chrome.storage.local.get(['groqApiKey']);
     return result.groqApiKey || '';
 }
@@ -126,7 +123,7 @@ async function initGroqKeyUi() {
     const existing = (await getGroqApiKey()).trim();
     groqKeyStatus.textContent = existing
         ? 'Groq enabled: new content will be generated each time you press Next.'
-        : 'Groq disabled: using offline library content. To enable, add `config.local.js` (see `config.example.js`).';
+        : 'Groq disabled: using offline library content. To enable, add your Groq API key in Settings.';
 }
 
 topicSelect.addEventListener('change', (e) => {

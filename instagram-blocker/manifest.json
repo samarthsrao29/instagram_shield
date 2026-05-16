@@ -3,6 +3,7 @@
   "name": "Focus Shield",
   "version": "1.0",
   "description": "Block Instagram after 2 minutes, unblock by reading about AI for 5 minutes.",
+  "options_page": "options.html",
   "permissions": [
     "storage",
     "tabs",

@@ -11,6 +11,15 @@ Enable Email auth (default). The extension uses a per-install generated email/pa
 Open Supabase → SQL Editor → run the script below.
 
 ```sql
+-- If you already ran this once, policies may already exist.
+-- These DROP statements make the script re-runnable.
+drop policy if exists "profiles_select_all" on public.user_profiles;
+drop policy if exists "profiles_upsert_own" on public.user_profiles;
+drop policy if exists "profiles_update_own" on public.user_profiles;
+drop policy if exists "stats_upsert_own" on public.user_daily_stats;
+drop policy if exists "stats_update_own" on public.user_daily_stats;
+drop policy if exists "stats_select_own" on public.user_daily_stats;
+
 -- Profiles
 create table if not exists public.user_profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
@@ -142,9 +151,11 @@ grant execute on function public.get_leaderboard_weekly(int) to authenticated;
 
 ## 3) Configure the extension
 
-Create `instagram-blocker/config.local.js` (do not commit) by copying `instagram-blocker/config.example.js`.
+This repo uses a shared (committed) Supabase project in `instagram-blocker/config.js`, so the same DB is used for:
+- Background sync (`user_profiles`, `user_daily_stats`)
+- Leaderboard RPCs (`get_leaderboard_daily`, `get_leaderboard_weekly`)
 
-Fill:
+If you want to point to a different Supabase project, create `instagram-blocker/config.local.js` (do not commit) by copying `instagram-blocker/config.example.js` and uncomment the overrides:
 
 ```js
 globalThis.SUPABASE_URL = "https://YOUR_PROJECT.supabase.co";
